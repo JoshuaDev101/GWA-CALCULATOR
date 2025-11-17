@@ -128,12 +128,86 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .subject-grade {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 8px;
       margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .subject-grade-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .subject-grade-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
     }
 
     .subject-title {
       font-size: 16px;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      flex: 1;
+    }
+
+    .subject-title-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .subject-gwa-badge {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(0, 149, 246, 0.1);
+      padding: 4px 12px;
+      border-radius: 12px;
+      margin-left: auto;
+    }
+
+    .subject-title:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .subject-title-input {
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 4px 8px;
+      width: 100%;
+      outline: none;
+    }
+
+    .edit-icon {
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .subject-title:hover .edit-icon {
+      opacity: 1;
     }
 
     .delete-btn {
@@ -228,11 +302,12 @@
     }
 
     .result-container {
+      width: 100%;
+      max-width: 600px;
       padding: 20px;
       text-align: center;
       background: var(--secondary-bg);
       border-radius: var(--radius-lg);
-      margin-top: 20px;
       border: 1px solid var(--border-color);
       display: none;
     }
@@ -386,27 +461,34 @@
 
       div.innerHTML = `
         <div class="subject-header">
-          <div class="subject-title">Subject ${subjectCount}</div>
+          <div class="subject-title" onclick="editSubjectName(${subjectCount})">
+            <span id="subject-name-${subjectCount}">Subject ${subjectCount}</span>
+            <i class="fas fa-pencil-alt edit-icon"></i>
+          </div>
           <button class="delete-btn" onclick="removeSubject(${subjectCount})">
             <i class="fas fa-times"></i>
           </button>
         </div>
+        <div class="subject-grade">
+          <span class="subject-grade-label">Subject GWA:</span>
+          <span class="subject-grade-value" id="subject-gwa-${subjectCount}">-</span>
+        </div>
         <div class="grades-grid">
           <div class="grade-input">
             <label for="prelim-${subjectCount}">Prelim (20%)</label>
-            <input type="number" id="prelim-${subjectCount}" placeholder="Enter grade" min="0" max="100" oninput="updateStats()">
+            <input type="number" id="prelim-${subjectCount}" class="grade-field" placeholder="Enter grade" min="0" max="100" step="0.01" oninput="updateSubjectGWA(${subjectCount})">
           </div>
           <div class="grade-input">
             <label for="midterm-${subjectCount}">Midterm (20%)</label>
-            <input type="number" id="midterm-${subjectCount}" placeholder="Enter grade" min="0" max="100" oninput="updateStats()">
+            <input type="number" id="midterm-${subjectCount}" class="grade-field" placeholder="Enter grade" min="0" max="100" step="0.01" oninput="updateSubjectGWA(${subjectCount})">
           </div>
           <div class="grade-input">
             <label for="prefinal-${subjectCount}">Prefinal (20%)</label>
-            <input type="number" id="prefinal-${subjectCount}" placeholder="Enter grade" min="0" max="100" oninput="updateStats()">
+            <input type="number" id="prefinal-${subjectCount}" class="grade-field" placeholder="Enter grade" min="0" max="100" step="0.01" oninput="updateSubjectGWA(${subjectCount})">
           </div>
           <div class="grade-input">
             <label for="final-${subjectCount}">Final (40%)</label>
-            <input type="number" id="final-${subjectCount}" placeholder="Enter grade" min="0" max="100" oninput="updateStats()">
+            <input type="number" id="final-${subjectCount}" class="grade-field" placeholder="Enter grade" min="0" max="100" step="0.01" oninput="updateSubjectGWA(${subjectCount})">
           </div>
         </div>
       `;
@@ -415,25 +497,91 @@
       updateStats();
     }
 
+    function editSubjectName(id) {
+      const subjectNameElement = document.getElementById(`subject-name-${id}`);
+      const currentName = subjectNameElement.textContent;
+      
+      // Create input field
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'subject-title-input';
+      input.value = currentName;
+      
+      // Replace the span with input
+      subjectNameElement.parentNode.replaceChild(input, subjectNameElement);
+      input.focus();
+      input.select();
+      
+      // Handle input events
+      input.addEventListener('blur', function() {
+        saveSubjectName(id, input.value);
+      });
+      
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          saveSubjectName(id, input.value);
+        } else if (e.key === 'Escape') {
+          saveSubjectName(id, currentName);
+        }
+      });
+    }
+    
+    function saveSubjectName(id, newName) {
+      const subjectTitleElement = document.querySelector(`#subject-${id} .subject-title`);
+      const nameSpan = document.createElement('span');
+      nameSpan.id = `subject-name-${id}`;
+      nameSpan.textContent = newName || `Subject ${id}`;
+      
+      const editIcon = document.createElement('i');
+      editIcon.className = 'fas fa-pencil-alt edit-icon';
+      
+      // Clear and rebuild the title element
+      subjectTitleElement.innerHTML = '';
+      subjectTitleElement.appendChild(nameSpan);
+      subjectTitleElement.appendChild(editIcon);
+      
+      // Reattach click event
+      subjectTitleElement.onclick = function() { editSubjectName(id); };
+    }
+
     function removeSubject(id) {
       const subject = document.getElementById(`subject-${id}`);
       if (subject) {
         subject.remove();
-        subjectCount--;
         
-        // Update subject numbers
+        // Check if there are any subjects left
         const subjects = document.querySelectorAll('.subject');
         if (subjects.length === 0) {
           document.getElementById('emptyState').style.display = 'block';
-        } else {
-          subjects.forEach((subject, index) => {
-            const title = subject.querySelector('.subject-title');
-            title.textContent = `Subject ${index + 1}`;
-          });
+          subjectCount = 0;
         }
         
         updateStats();
       }
+    }
+
+    function updateSubjectGWA(id) {
+      const subject = document.getElementById(`subject-${id}`);
+      if (!subject) return;
+      
+      const inputs = subject.querySelectorAll('.grade-field');
+      const prelim = parseFloat(inputs[0].value) || 0;
+      const midterm = parseFloat(inputs[1].value) || 0;
+      const prefinal = parseFloat(inputs[2].value) || 0;
+      const finals = parseFloat(inputs[3].value) || 0;
+      
+      const gwaElement = document.getElementById(`subject-gwa-${id}`);
+      
+      // Calculate subject GWA if all grades are filled
+      if (prelim > 0 && midterm > 0 && prefinal > 0 && finals > 0) {
+        const subjectGWA = (prelim * 0.20) + (midterm * 0.20) + (prefinal * 0.20) + (finals * 0.40);
+        gwaElement.textContent = subjectGWA.toFixed(2);
+      } else {
+        gwaElement.textContent = '-';
+      }
+      
+      // Update overall stats
+      updateStats();
     }
 
     function updateStats() {
@@ -449,10 +597,11 @@
       let count = 0;
       
       subjects.forEach(sub => {
-        const prelim = parseFloat(sub.querySelector('input:nth-child(2)').value) || 0;
-        const midterm = parseFloat(sub.querySelector('input:nth-child(4)').value) || 0;
-        const prefinal = parseFloat(sub.querySelector('input:nth-child(6)').value) || 0;
-        const finals = parseFloat(sub.querySelector('input:nth-child(8)').value) || 0;
+        const inputs = sub.querySelectorAll('.grade-field');
+        const prelim = parseFloat(inputs[0].value) || 0;
+        const midterm = parseFloat(inputs[1].value) || 0;
+        const prefinal = parseFloat(inputs[2].value) || 0;
+        const finals = parseFloat(inputs[3].value) || 0;
         
         // Check if all grades are filled
         if (prelim > 0 && midterm > 0 && prefinal > 0 && finals > 0) {
@@ -475,22 +624,32 @@
 
     function calculateGWA() {
       const subjects = document.querySelectorAll('.subject');
+      
+      if (subjects.length === 0) {
+        alert("Please add at least one subject with grades.");
+        return;
+      }
+      
       let total = 0;
       let count = 0;
 
       subjects.forEach(sub => {
-        const prelim = parseFloat(sub.querySelector('input:nth-child(2)').value) || 0;
-        const midterm = parseFloat(sub.querySelector('input:nth-child(4)').value) || 0;
-        const prefinal = parseFloat(sub.querySelector('input:nth-child(6)').value) || 0;
-        const finals = parseFloat(sub.querySelector('input:nth-child(8)').value) || 0;
+        const inputs = sub.querySelectorAll('.grade-field');
+        const prelim = parseFloat(inputs[0].value) || 0;
+        const midterm = parseFloat(inputs[1].value) || 0;
+        const prefinal = parseFloat(inputs[2].value) || 0;
+        const finals = parseFloat(inputs[3].value) || 0;
 
-        const finalGrade = (prelim * 0.20) + (midterm * 0.20) + (prefinal * 0.20) + (finals * 0.40);
-        total += finalGrade;
-        count++;
+        // Only count subjects with all grades filled
+        if (prelim > 0 && midterm > 0 && prefinal > 0 && finals > 0) {
+          const finalGrade = (prelim * 0.20) + (midterm * 0.20) + (prefinal * 0.20) + (finals * 0.40);
+          total += finalGrade;
+          count++;
+        }
       });
 
       if (count === 0) {
-        alert("Please add at least one subject with grades.");
+        alert("Please enter grades for at least one subject.");
         return;
       }
 
@@ -521,25 +680,32 @@
       gradeCategory.className = "result-grade " + categoryClass;
       
       resultContainer.classList.add("show");
+      
+      // Scroll to result
+      resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function toggleTheme() {
       isDarkMode = !isDarkMode;
       const root = document.documentElement;
-      const icon = document.querySelector('.fa-moon');
+      const icon = document.querySelector('.header-actions .fa-moon, .header-actions .fa-sun');
       
       if (isDarkMode) {
         root.style.setProperty('--primary-bg', '#000000');
         root.style.setProperty('--secondary-bg', '#121212');
         root.style.setProperty('--card-bg', '#1a1a1a');
+        root.style.setProperty('--border-color', '#2f2f2f');
         root.style.setProperty('--text-primary', '#ffffff');
+        root.style.setProperty('--text-secondary', '#a8a8a8');
         icon.classList.remove('fa-sun');
         icon.classList.add('fa-moon');
       } else {
         root.style.setProperty('--primary-bg', '#fafafa');
         root.style.setProperty('--secondary-bg', '#ffffff');
         root.style.setProperty('--card-bg', '#ffffff');
+        root.style.setProperty('--border-color', '#dbdbdb');
         root.style.setProperty('--text-primary', '#262626');
+        root.style.setProperty('--text-secondary', '#737373');
         icon.classList.remove('fa-moon');
         icon.classList.add('fa-sun');
       }
@@ -548,10 +714,14 @@
     function resetAll() {
       if (confirm("Are you sure you want to remove all subjects?")) {
         const subjectsContainer = document.getElementById("subjects");
-        subjectsContainer.innerHTML = '';
-        subjectCount = 0;
+        const emptyState = document.getElementById('emptyState');
         
-        document.getElementById('emptyState').style.display = 'block';
+        // Remove all subject divs except empty state
+        const subjects = subjectsContainer.querySelectorAll('.subject');
+        subjects.forEach(sub => sub.remove());
+        
+        subjectCount = 0;
+        emptyState.style.display = 'block';
         document.getElementById('gwaResult').classList.remove('show');
         updateStats();
       }
